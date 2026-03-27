@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bilibili Video to Obsidian"
+  short_description: "Run the project's Bilibili-to-Obsidian workflow end to end using local scripts, screenshots, and Obsidian publishing."
+  default_prompt: "Use this project skill to process a Bilibili video URL end to end: run the local pipeline, stop if subtitles are unavailable, write the commercial-review Markdown note, generate screenshots, validate assets, and publish the final note into Obsidian."

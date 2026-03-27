@@ -1,0 +1,33 @@
+# Runtime and local config
+.config/*.txt
+!.config/*.example
+.video_note_tmp/
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated outputs
+downloads/
+subtitles_out/
+subtitles_out_test/
+tmp_*/
+video_artifacts/
+assets/
+output/
+
+# Per-video folders
+*/
+!skills/
+!scripts/
+!.config/
+
+# Keep tracked subpaths under top-level folders
+!skills/**
+!scripts/**
+!.config/**
+
+# Docs
+!README.md
+!OPENCLAW_IMPORT.md
+!.gitignore

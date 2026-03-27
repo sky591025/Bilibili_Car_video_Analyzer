@@ -1,0 +1,5 @@
+# Optional.
+# Only create `.config/bili_cookie.txt` from this template if your Bilibili subtitle requests require a logged-in cookie.
+# Paste the raw Bilibili Cookie header value on a single line below.
+
+SESSDATA=your_value; bili_jct=your_value; DedeUserID=your_value
