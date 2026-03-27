@@ -12,6 +12,22 @@
 - 校验图片资源
 - 发布到 Obsidian
 
+## Final Report Previews
+
+下面这几张图展示的是这个 skill 生成出来的最终 Markdown 报告预览效果。
+
+### 智己 LS8 报告预览
+
+![LS8 report preview](./docs/report-previews/ls8-report-preview.png)
+
+### 零跑 A10 深度评测预览
+
+![A10 CEO report preview](./docs/report-previews/a10-ceo-report-preview.png)
+
+### 零跑 A10 家庭换车预览
+
+![A10 family report preview](./docs/report-previews/a10-family-report-preview.png)
+
 ## Repository Layout
 
 ```text

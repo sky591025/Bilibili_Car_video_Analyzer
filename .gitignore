@@ -26,6 +26,8 @@ output/
 !skills/**
 !scripts/**
 !.config/**
+!docs/
+!docs/**
 
 # Docs
 !README.md
