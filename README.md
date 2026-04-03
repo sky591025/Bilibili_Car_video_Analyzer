@@ -1,81 +1,79 @@
 # Bilibili Car Video Analyzer
 
-一个面向 OpenClaw 工作区的 Bilibili 汽车评测分析 skill。
+An OpenClaw-ready workflow package for turning Bilibili vehicle review videos into structured Obsidian notes.
 
-它的目标不是只“下载视频和存字幕”，而是把一条 B 站汽车视频走成完整交付链路：
+The repo name stays `Bilibili_Car_video_Analyzer`, but the current workflow is no longer limited to passenger cars. It can also handle motorcycle / performance bike review content as long as the video has usable subtitles.
 
-- 下载视频
-- 提取字幕
-- 无字幕立即终止
-- 基于字幕生成结构化商业评测 Markdown
-- 自动补齐时间戳截图
-- 校验图片资源是否完整
-- 发布到 Obsidian
+## What This Repo Does
 
-适合这类场景：
+Given one Bilibili video URL, the workflow will:
 
-- 批量整理 B 站汽车评测内容
-- 生成可沉淀到知识库的结构化报告
-- 在 OpenClaw 中复用一个稳定的汽车视频分析工作流
+1. Validate the Bilibili login cookie before every run
+2. Download the video
+3. Extract subtitles
+4. Stop immediately if no subtitle track is available
+5. Generate a structured analysis Markdown note
+6. Replace timestamp markers with real screenshots
+7. Validate that every referenced asset exists
+8. Publish the final note to Obsidian
 
-## What You Get
+## Guardrails
 
-每条视频最终会产出一个独立目录：
+These rules are now built into the workflow and the skill:
+
+- Cookie validation is mandatory before every run via `https://api.bilibili.com/x/web-interface/nav`
+- If `isLogin != true`, the workflow must stop before download / subtitle / screenshot / publish
+- No subtitle means no analysis; there is no ASR fallback in this skill
+- Screenshot anchors must align to the actual feature / parameter sentence, not transition phrases
+- The `时间戳截图` column must render images directly inside the table
+- Table images in the feature overview section use width `300`
+- Asset paths must use `assets/<noteFileName>/<generatedAttachmentFileName>`
+- Publish must validate assets before and after copying to Obsidian
+- Publish subdirectories must match content type
+
+## Supported Content Types
+
+The same workflow can now be used for different vehicle review content:
+
+- Cars: publish to `汽车评测/<车型名>`
+- Motorcycles: publish to `摩托评测/<车型名>`
+- Other vehicle categories: publish to the closest matching top-level folder and keep the note wording consistent
+
+## Final Output
+
+Each successful run produces a dedicated folder:
 
 ```text
-./<视频标题>/
-├─ <视频标题>.md
-├─ <视频标题>.mp4
-├─ <视频标题>.srt
+./<video-title>/
+├─ <video-title>.md
+├─ <video-title>.mp4
+├─ <video-title>.srt
 └─ assets/
-   └─ <视频标题>/
+   └─ <video-title>/
 ```
 
-其中最终报告包含：
+The note itself includes:
 
-- 视频元信息
-- 功能全景扫描表
-- 核心宣传功能识别
-- 核心功能深度解构
-- 整体评价
-- 与时间戳一一对应的截图
+- Video metadata
+- Feature overview table
+- Core feature identification
+- Deep-dive analysis
+- Overall evaluation
+- Timestamp-aligned screenshots
 
 ## Final Report Previews
 
-下面是实际生成的最终报告预览图，不是示意图。
-
-### 智己 LS8 报告预览
+### IM LS8 Preview
 
 ![LS8 report preview](./docs/report-previews/ls8-report-preview.png)
 
-### 零跑 A10 深度评测预览
+### Leapmotor A10 Preview
 
 ![A10 CEO report preview](./docs/report-previews/a10-ceo-report-preview.png)
 
-### 零跑 A10 家庭换车预览
+### Leapmotor A10 Family Purchase Preview
 
 ![A10 family report preview](./docs/report-previews/a10-family-report-preview.png)
-
-## Workflow
-
-```text
-Bilibili URL
-  -> video_note_pipeline.py
-  -> subtitle check
-  -> markdown analysis
-  -> screenshot.py
-  -> asset validation
-  -> publish_to_obsidian.py
-  -> Obsidian note
-```
-
-这套流程有几个硬规则：
-
-- 没有字幕就停止，不做 ASR 兜底
-- 截图必须对齐功能描述，不允许用过渡句做锚点
-- 表格里的“时间戳截图”列直接显示图片
-- 发布前后都要校验资源是否存在
-- 截图阶段优先锁定当前视频工作目录中的分析稿，避免误读 `README`、`OPENCLAW_IMPORT.md` 等说明文档
 
 ## Repository Layout
 
@@ -87,14 +85,14 @@ Bilibili URL
 │     └─ agents/
 │        └─ openai.yaml
 ├─ scripts/
-│  ├─ video_note_pipeline.py
 │  ├─ bilibili_subtitle_batch.py
-│  ├─ screenshot.py
+│  ├─ feature_anchor_helper.py
 │  ├─ publish_to_obsidian.py
-│  └─ feature_anchor_helper.py
+│  ├─ screenshot.py
+│  └─ video_note_pipeline.py
 ├─ .config/
-│  ├─ obsidian_vault_path.txt.example
-│  └─ bili_cookie.txt.example
+│  ├─ bili_cookie.txt.example
+│  └─ obsidian_vault_path.txt.example
 ├─ docs/
 │  └─ report-previews/
 └─ OPENCLAW_IMPORT.md
@@ -106,91 +104,88 @@ Bilibili URL
 - `yt-dlp`
 - `ffmpeg`
 
-## OpenClaw Setup
-
-推荐把这个仓库本身作为 OpenClaw 的 workspace 根目录。
-
-OpenClaw 会自动从下面这个路径发现 skill：
-
-```text
-./skills/bilibili-video-to-obsidian/
-```
-
-如果你的 OpenClaw workspace 不在这个仓库里，也可以把本仓库的 `skills/` 目录加入 `skills.load.extraDirs`。
-
-更完整的导入说明见 [OPENCLAW_IMPORT.md](./OPENCLAW_IMPORT.md)。
-
 ## Config
 
-### 1. Obsidian Vault
+### 1. Obsidian vault path
 
-复制：
+Copy:
 
 ```text
 .config/obsidian_vault_path.txt.example
 ```
 
-为：
+to:
 
 ```text
 .config/obsidian_vault_path.txt
 ```
 
-并写入你自己的 Obsidian vault 绝对路径。
+Then write your absolute Obsidian vault path into it.
 
-### 2. Bilibili Cookie
+### 2. Bilibili cookie
 
-如果抓字幕需要登录态，再复制：
+Copy:
 
 ```text
 .config/bili_cookie.txt.example
 ```
 
-为：
+to:
 
 ```text
 .config/bili_cookie.txt
 ```
 
-并填入原始 Cookie header。
+Use a valid logged-in raw `Cookie:` header. The workflow now checks login status before every run, so stale cookies will fail fast.
 
 ## Quick Start
 
-### 1. 下载视频并提取字幕
+### 1. Download video and extract subtitles
 
 ```powershell
 python .\scripts\video_note_pipeline.py "<bilibili-video-url>"
 ```
 
-### 2. 生成截图并回写 Markdown
+### 2. Generate screenshots and finalize the Markdown note
 
 ```powershell
 python .\scripts\screenshot.py
 ```
 
-### 3. 发布到 Obsidian
+### 3. Publish to Obsidian
+
+Car example:
 
 ```powershell
 python .\scripts\publish_to_obsidian.py "<path-to-note.md>" --subdir "汽车评测/<车型名>"
 ```
 
-## Notes
+Motorcycle example:
 
-- 最终产物目录采用 `./<视频标题>/`
-- 截图资源统一保存到 `assets/<笔记文件名>/`
-- Markdown 图片路径统一使用 `assets/<笔记文件名>/<截图文件名>`
-- `.video_note_tmp/` 用于保存会话态和临时过程文件
-- `downloads/`、`subtitles_out/`、`tmp_*`、`__pycache__/` 这类过程目录在验收后应清理
+```powershell
+python .\scripts\publish_to_obsidian.py "<path-to-note.md>" --subdir "摩托评测/<车型名>"
+```
+
+## OpenClaw Import
+
+This repository is already organized as an OpenClaw-friendly workspace.
+
+OpenClaw can discover the skill from:
+
+```text
+./skills/bilibili-video-to-obsidian/
+```
+
+For detailed import instructions, see [OPENCLAW_IMPORT.md](./OPENCLAW_IMPORT.md).
 
 ## Why This Repo Exists
 
-这个仓库更像一个“可执行工作流包”，而不是单独一篇说明文档。
+This repo is meant to be a reusable execution package, not just a loose prompt or documentation note.
 
-重点是把这些容易出错的细节固化下来：
+It specifically locks down the failure-prone parts of the workflow:
 
-- 字幕拿不到时不要硬分析
-- 截图时间点要和功能描述严格匹配
-- 图片路径要符合 Obsidian 的实际渲染规则
-- 发布前后都要检查资源有没有真的复制过去
-
-如果你想把它当成一个可直接导入 OpenClaw 的 skill 仓库来用，这份结构已经是可发布状态。
+- no fake analysis when subtitles are missing
+- no screenshot timestamps that point to transition lines
+- no missing copied assets in Obsidian
+- no accidental use of `README.md` / `OPENCLAW_IMPORT.md` as the analysis source
+- no silent runs under an expired Bilibili login state

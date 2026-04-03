@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 
-TABLE_IMAGE_WIDTH = 180
+TABLE_IMAGE_WIDTH = 300
 SCREENSHOT_NAME_RE = re.compile(r"screenshot_(\d{2})_(\d{2})\.(?:jpg|jpeg|png)$", re.IGNORECASE)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

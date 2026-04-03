@@ -17,6 +17,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
 class PipelineError(RuntimeError):
@@ -52,6 +54,10 @@ def run_cmd(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".flv", ".mov"}
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+)
 
 
 def safe_filename(name: str) -> str:
@@ -236,6 +242,39 @@ def discover_cookie_file(root: Path) -> Path | None:
     return None
 
 
+def validate_bilibili_cookie(cookie_file: Path | None) -> dict:
+    if not cookie_file or not cookie_file.exists():
+        raise PipelineError("Bilibili login cookie is required. Please update .config/bili_cookie.txt.")
+
+    cookie = cookie_file.read_text(encoding="utf-8", errors="replace").strip()
+    if not cookie:
+        raise PipelineError("Bilibili login cookie is empty. Please update .config/bili_cookie.txt.")
+
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.bilibili.com/",
+        "Origin": "https://www.bilibili.com",
+        "Cookie": cookie,
+    }
+    req = Request("https://api.bilibili.com/x/web-interface/nav", headers=headers, method="GET")
+    try:
+        with urlopen(req, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except HTTPError as err:
+        raise PipelineError(f"Bilibili auth check failed with HTTP {err.code}.") from err
+    except URLError as err:
+        raise PipelineError(f"Bilibili auth check network error: {err}.") from err
+    except json.JSONDecodeError as err:
+        raise PipelineError("Bilibili auth check returned invalid JSON.") from err
+
+    nav_data = payload.get("data") or {}
+    if payload.get("code") != 0 or not nav_data.get("isLogin"):
+        message = payload.get("message") or "not logged in"
+        raise PipelineError(f"Bilibili cookie is invalid or logged out: {message}")
+    return nav_data
+
+
 def remove_file_if_exists(path: Path | None) -> None:
     if not path or not path.exists():
         return
@@ -267,6 +306,14 @@ def main() -> int:
     if not subtitle_script.exists():
         print(f"字幕脚本不存在: {subtitle_script}")
         return 2
+
+    try:
+        nav_data = validate_bilibili_cookie(cookie_file)
+        uname = str(nav_data.get("uname") or "").strip() or "unknown"
+        print(f"[AUTH] logged in as: {uname}")
+    except PipelineError as err:
+        print(f"娴佺▼澶辫触: {err}")
+        return 1
 
     video_file: Path | None = None
     subtitle_file: Path | None = None

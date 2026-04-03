@@ -125,6 +125,9 @@ class BilibiliClient:
             raise RuntimeError(f"view API failed for {bvid}: {data.get('message', 'unknown')}")
         return data["data"]
 
+    def fetch_nav_info(self) -> dict[str, Any]:
+        return self._request_json("https://api.bilibili.com/x/web-interface/nav")
+
     def fetch_subtitle_list(self, bvid: str, aid: int, cid: int) -> list[dict[str, Any]]:
         # Prefer v2 first; fallback to wbi/v2.
         urls = [
@@ -172,6 +175,18 @@ def normalize_subtitle_url(url: str) -> str:
     if url.startswith("http://") or url.startswith("https://"):
         return url
     return "https://" + url.lstrip("/")
+
+
+def validate_login_or_raise(client: BilibiliClient) -> dict[str, Any]:
+    if not client.cookie:
+        raise RuntimeError("Bilibili login cookie is required. Please update .config/bili_cookie.txt.")
+
+    data = client.fetch_nav_info()
+    nav_data = data.get("data") or {}
+    if data.get("code") != 0 or not nav_data.get("isLogin"):
+        message = data.get("message") or "not logged in"
+        raise RuntimeError(f"Bilibili cookie is invalid or logged out: {message}")
+    return nav_data
 
 
 def pick_track(subtitles: list[dict[str, Any]], lang_order: list[str]) -> dict[str, Any] | None:
@@ -454,6 +469,14 @@ def main() -> int:
     lang_order = [x.strip() for x in args.lang_order.split(",") if x.strip()]
 
     client = BilibiliClient(cookie=cookie)
+    try:
+        nav_data = validate_login_or_raise(client)
+        uname = str(nav_data.get("uname") or "").strip() or "unknown"
+        print(f"[AUTH] logged in as: {uname}")
+    except Exception as e:  # noqa: BLE001
+        print(f"[AUTH FAIL] {e}")
+        return 2
+
     success = 0
     failed = 0
 
