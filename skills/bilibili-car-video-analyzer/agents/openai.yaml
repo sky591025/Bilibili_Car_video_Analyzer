@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bilibili_Car_Video_Analyzer"
+  short_description: "Analyze Bilibili automotive videos with subtitles, timestamped screenshots, and publishing to Obsidian or Feishu."
+  default_prompt: "Use this project skill to process a Bilibili automotive video end to end: run or recover the local pipeline, stop if subtitles are unavailable, write the evidence-based commercial-review Markdown note, generate timestamp-aligned screenshots, validate assets, and publish the final note into Obsidian or Feishu when requested."

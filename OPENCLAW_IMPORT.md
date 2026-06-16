@@ -4,7 +4,7 @@
 
 当前 skill 位置：
 
-- `./skills/bilibili-video-to-obsidian/`
+- `./skills/bilibili-car-video-analyzer/`
 
 其中包含：
 
@@ -19,11 +19,11 @@
 
 则 OpenClaw 应直接从以下目录发现技能：
 
-- `./skills/bilibili-video-to-obsidian/`
+- `./skills/bilibili-car-video-analyzer/`
 
 也就是现在这个路径：
 
-- `E:\BaiduSyncdisk\100 - 工作\150_vibe_coding_Project\Bilibili_Video_to_Obsidian\skills\bilibili-video-to-obsidian`
+- `E:\BaiduSyncdisk\100 - 工作\150_vibe_coding_Project\Bilibili_Video_to_Obsidian\skills\bilibili-car-video-analyzer`
 
 这种方式最省事，不需要额外配 `extraDirs`。
 
@@ -33,7 +33,7 @@
 
 - `E:\BaiduSyncdisk\100 - 工作\150_vibe_coding_Project\Bilibili_Video_to_Obsidian\skills`
 
-然后让 OpenClaw 从该目录扫描 `bilibili-video-to-obsidian/`。
+然后让 OpenClaw 从该目录扫描 `bilibili-car-video-analyzer/`。
 
 建议加的是 `skills/` 这一层，而不是直接加 skill 内部的 `agents/` 或 `SKILL.md` 文件。
 
@@ -41,8 +41,8 @@
 
 OpenClaw 导入时主要使用：
 
-- `skills/bilibili-video-to-obsidian/SKILL.md`
-- `skills/bilibili-video-to-obsidian/agents/openai.yaml`
+- `skills/bilibili-car-video-analyzer/SKILL.md`
+- `skills/bilibili-car-video-analyzer/agents/openai.yaml`
 
 项目实际执行脚本仍然在项目根目录下的：
 
@@ -62,7 +62,7 @@ OpenClaw 导入时主要使用：
 
 导入完成后，建议确认这几件事：
 
-- OpenClaw 能识别到 skill 名称 `bilibili-video-to-obsidian`
+- OpenClaw 能识别到 skill 名称 `bilibili-car-video-analyzer`
 - skill 描述能正常显示
 - 工作区根目录就是当前项目根目录
 - 项目内存在 `scripts/`、`.config/`、`.video_note_tmp/` 这些目录
@@ -71,6 +71,6 @@ OpenClaw 导入时主要使用：
 
 导入后，可让 OpenClaw 直接执行类似任务：
 
-`使用 bilibili-video-to-obsidian skill 分析这个 B 站视频链接，并发布到 Obsidian`
+`使用 Bilibili_Car_Video_Analyzer skill 分析这个 B 站汽车视频链接，并发布到 Obsidian 或飞书`
 
 如果你后面要给 OpenClaw 做项目初始化，我建议把它的 workspace 直接设到本项目根目录，这样这套 skill 不需要再做第二次适配。

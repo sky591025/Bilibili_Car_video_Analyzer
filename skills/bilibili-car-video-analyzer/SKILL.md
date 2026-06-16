@@ -1,11 +1,11 @@
 ---
-name: bilibili-video-to-obsidian
-description: 接收一个B站视频链接并执行完整流程：下载视频，提取字幕；若无字幕则终止；若有字幕则基于字幕生成商业评测分析 Markdown、补齐截图、并发布到 Obsidian。适用于当前项目内的 B 站视频分析工作流。
+name: bilibili-car-video-analyzer
+description: Use when analyzing Bilibili automotive launch, review, or product videos with subtitles, screenshots, timestamped evidence, and publishing to Obsidian or Feishu cloud docs.
 ---
 
-# Bilibili Video To Obsidian
+# Bilibili_Car_Video_Analyzer
 
-此 skill 供当前项目直接使用，默认依赖项目根目录下的 `scripts/`、`.config/`、`.video_note_tmp/` 和按视频标题命名的产物目录。
+此 skill 供当前项目直接使用，用于分析 B 站汽车发布会、评测、产品解读视频，并将带字幕证据与截图的 Markdown 发布到 Obsidian 或飞书云文档。默认依赖项目根目录下的 `scripts/`、`.config/`、`.video_note_tmp/` 和按视频标题命名的产物目录。
 
 ## Quick Start
 
@@ -17,14 +17,15 @@ python .\scripts\video_note_pipeline.py "<bilibili-video-url>"
 
 2. 如果返回“无字幕，任务终止。”或“字幕源不稳定”，则停止，不得继续伪造分析。
 3. 如果成功，读取 `.video_note_tmp/.video_note_session.json` 里的 `subtitle_file`、`video_file`、`work_dir`。
-4. 基于字幕完成商业评测分析 Markdown。
-5. 运行截图补全：
+4. 如果下载失败但用户已提供本地视频，走“手动视频兜底”流程，不要从头卡死。
+5. 基于字幕完成商业评测分析 Markdown。
+6. 运行截图补全：
 
 ```powershell
 python .\scripts\screenshot.py
 ```
 
-6. 发布到 Obsidian：
+7. 发布到 Obsidian：
 
 ```powershell
 python .\scripts\publish_to_obsidian.py "<path-to-note.md>" --subdir "汽车评测/<车型名>"
@@ -41,6 +42,7 @@ Before every run, validate `.config/bili_cookie.txt` against
 - Do not continue with download, subtitle extraction, screenshot, or publish
 - Ask for a refreshed full cookie first
 - Treat "cookie exists but logged out" as a hard failure, not a warning
+- Do not echo or preserve raw cookie values in notes, logs, or final responses
 
 ### 1. 创建或复用视频工作目录
 
@@ -62,6 +64,16 @@ Before every run, validate `.config/bili_cookie.txt` against
 - `<视频标题>.srt`
 - `assets/<视频标题>/`
 
+#### 1.1 手动视频兜底
+
+若 cookie 校验通过，但下载阶段失败（常见原因包括 `yt-dlp` 不在 `PATH`、Bilibili 返回 HTTP 412、或反爬限制），且用户已经提供本地视频文件：
+
+- 复用用户提供的视频，不要反复重试下载
+- 将视频归档为工作目录内的 `<视频标题>.mp4`
+- 单独运行 `scripts/bilibili_subtitle_batch.py` 抽取字幕，生成 `<视频标题>.srt`
+- 更新 `.video_note_tmp/.video_note_session.json`，确保 `video_file`、`subtitle_file`、`work_dir`、`analysis_md` 指向当前视频工作目录
+- 若曾生成 Netscape cookie 临时文件或其他包含登录凭据的临时文件，验收后必须删除
+
 ### 2. 分析规则
 
 必须基于 `subtitle_file` 输出完整分析，不得只靠视频标题或简介猜测内容。
@@ -70,6 +82,8 @@ Before every run, validate `.config/bili_cookie.txt` against
 
 - 若无字幕，立即终止，不做 ASR 兜底分析
 - 时间戳必须对应“功能点被明确解释/参数被明确说出/价值被明确表达”的语句
+- 若字幕块是一整句长句，时间戳必须落在核心词/参数实际出现的位置附近，不得默认使用字幕块起始时间
+- 如果字幕块从 `00:22:50` 开始，但核心词“22度”实际在后半句出现，应截取接近 `00:22:56` 的画面，而不是 `00:22:50`
 - 禁止用“我们看这里”“这个地方”“接下来再说”等过渡句做截图锚点
 - 若一句里出现明确数字、规格、容量、角度、线数或参数，优先选这一句
 - 截图与时间戳必须严格一一对应，不可错位
@@ -80,9 +94,12 @@ Before every run, validate `.config/bili_cookie.txt` against
 
 - 所有截图都保存在 `assets/<笔记文件名>/`
 - Markdown 中的图片路径统一为 `assets/<笔记文件名>/<截图文件名>`
+- 若标题或笔记文件名包含 `#`、空格、竖线、中文标点等容易破坏 Markdown/HTML `src` 的字符，改用安全 ASCII 资产目录，例如 `assets/aiva_brand_launch/`
+- 资产目录一旦改名，必须同步修正 Markdown、session、Obsidian 目标目录里的全部图片引用
 - “时间戳截图”列必须直接显示图片，而不是“截图”文字链接
 - “时间戳截图”列中的表格内图片宽度统一为 `300`
 - 若 Markdown 已引用某张截图但本地 `assets/<笔记文件名>/` 中不存在对应文件，必须先补齐再发布
+- 重新选时间戳后，必须同时更新表格时间、截图文件名、深度分析里的图片引用；旧截图若不再被引用，应清理或归档
 
 截图占位符格式固定为：
 
@@ -110,7 +127,44 @@ Before every run, validate `.config/bili_cookie.txt` against
 
 发布前后都必须校验图片资源是否完整；若缺图，视为发布失败。
 
-### 5. 项目目录整理规则
+### 5. 飞书云文档发布
+
+如果用户要求转为飞书云文档，不要直接假设 Markdown 导入能保留本地截图。
+
+已知坑位：
+
+- `drive +import` 导入 Markdown 或 docx 时，本地截图经常显示“无法导入”
+- `docs +create --markdown` 不可靠支持本地图片路径，也不要手写 `<image token=...>` 冒充已插入图片
+- `docs +media-insert` 默认追加到文档末尾；若一次性先写完整文档再插图，会变成最后的截图画廊
+- `lark-cli` 的 `@file` / `--file` 路径通常要求相对当前目录，绝对路径可能被拒绝为 unsafe path
+
+可靠做法：
+
+- 先把 Markdown 拆成“时间戳段落/表格行/分析块 + 对应图片”的有序块
+- 用 `docs +create` 或 `docs +update --mode append` 逐块写入文本
+- 每写完一个需要截图的块，立即调用 `docs +media-insert` 插入对应图片
+- 若图片文件不在当前命令工作目录下，先复制或软链接到 `/tmp` 下的安全工作目录，再使用相对路径
+- 用户明确要求“不要截图画廊”时，禁止把所有图片集中追加到文末
+
+飞书发布后必须验证：
+
+- `docs +fetch` 返回内容中没有“无法导入”
+- 图片数量与 Markdown 中应展示的截图数量一致
+- 截图出现在提到该时间戳或核心参数的附近，而不是文末
+- 若用户要求行内/就近截图，文档中不得出现“截图画廊”“图片汇总”等兜底章节
+
+### 6. 验收清单
+
+交付前至少检查：
+
+- Markdown 中没有残留 `Screenshot-[hh:mm:ss]` 占位符
+- 所有图片引用都能在本地资产目录中找到
+- 时间戳、截图文件名、截图画面和字幕核心词相互匹配
+- Obsidian 发布目标真实存在；若 `.config/obsidian_vault_path.txt` 是当前系统不可用路径，必须显式传入 `--vault`
+- 若同时维护本地稿和 Obsidian 稿，二者图片目录和引用数量一致
+- 飞书稿若存在，需确认图片不是导入失败占位，也不是全部堆在文末
+
+### 7. 项目目录整理规则
 
 - 所有可执行 Python 脚本统一放在 `scripts/`
 - 配置文件统一放在 `.config/`：`bili_cookie.txt`、`obsidian_vault_path.txt`
@@ -132,7 +186,10 @@ Before every run, validate `.config/bili_cookie.txt` against
 ## Failure Handling
 
 - 若字幕提取失败，明确返回失败原因，不继续分析
+- 若 Bilibili 下载失败但用户已提供本地视频，优先进入手动视频兜底，而不是重复下载
 - 若截图缺失，优先补生成；补不出来则终止发布
 - 若截图阶段发现源 Markdown 不是当前视频目录中的分析稿，必须先纠正 `session` 或显式传入 `--markdown`，不得继续沿用错误源稿
+- 若截图与字幕核心词错位，必须重新选择核心词时间戳并重截，不得只改文字说明
 - 若 Obsidian 路径不存在或未配置，停止在发布步骤，不得伪称已发布
+- 若飞书导入后图片显示“无法导入”，改用逐块写入文本并紧跟 `docs +media-insert` 的方式重建文档
 - 若发现项目结构与本 skill 文档不一致，应优先更新 skill 再继续运行
